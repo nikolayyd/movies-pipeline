@@ -75,3 +75,4 @@ ETL pipeline-ът е **idempotent** – многократно изпълнен�
 
 ```bash
 pip install -r requirements.txt
+python main.py
