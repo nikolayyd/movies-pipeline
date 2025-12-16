@@ -4,7 +4,8 @@
 
 This project implements an **ETL (Extract, Transform, Load) pipeline** for processing a Movies dataset. The pipeline reads data from a CSV file, cleans and transforms it, and loads it into a **normalized PostgreSQL schema** using SQLAlchemy ORM.
 
-The project uses a **staging table** for initial loading and multiple **many-to-many relationships**, typical for real-world data engineering workflows.
+The project uses a staging table to load raw CSV data, which is then transformed into typed fields and normalized tables.
+String arrays and JSON-like columns are parsed and expanded into separate tables, connected to movies through many-to-many relationships, reflecting real-world data engineering workflows.
 
 ---
 
@@ -20,15 +21,15 @@ The project uses a **staging table** for initial loading and multiple **many-to-
 ## Project Structure
 
 ```text
-.
-├── main.py               # Entry point for ETL process
-├── db.py                 # Database configuration and session
-├── models.py             # SQLAlchemy models
-├── crud.py               # CRUD functions, including get_or_create_fields
-├── transforms.py         # Transformations and ETL logic
-├── requirements.txt      # Python dependencies
-├── data/                 # Folder with CSV files
-└── README.md             # This file
+
+-> main.py               # Entry point for ETL process
+-> db.py                 # Database configuration and session
+-> models.py             # SQLAlchemy models
+-> crud.py               # CRUD functions, including get_or_create_fields
+-> transforms.py         # Transformations and ETL logic
+-> requirements.txt      # Python dependencies
+-> data/                 # Folder with CSV files
+-> README.md             # This file
 
 ## Database Models
 
@@ -79,6 +80,7 @@ These tables manage the relationships between movies and their associated attrib
 ### 3. Transform
 
 - Parse and transform columns into separate normalized tables
+- Convert cleaned string values to appropriate types (int, float, date) during model assignment
 - Deduplicate records using `get_or_create_fields`
 - Maintain referential integrity between tables
 
