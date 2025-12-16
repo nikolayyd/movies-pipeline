@@ -30,6 +30,7 @@ String arrays and JSON-like columns are parsed and expanded into separate tables
 -> requirements.txt      # Python dependencies
 -> data/                 # Folder with CSV files
 -> README.md             # This file
+```
 
 ## Database Models
 
