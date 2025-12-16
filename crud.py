@@ -7,7 +7,8 @@ from models import *
 
 def init_db():
     """
-    Initialize the database: create schema and tables."""
+    Initialize the database: create schema and tables.
+    """
     with engine.connect() as conn:
         conn.execute(sqlalchemy.text("CREATE SCHEMA IF NOT EXISTS movies;"))
 
@@ -17,6 +18,7 @@ def init_db():
 def read_movies_from_csv(file_path: str) -> pd.DataFrame:
     """
     Read movies from CSV file into DataFrame.
+    
     :param file_path: path to CSV file
     :return: DataFrame with movie data
     """
@@ -25,52 +27,39 @@ def read_movies_from_csv(file_path: str) -> pd.DataFrame:
     return movies
 
 def load_movies_to_staging(movies_df: pd.DataFrame):
+    """
+    Load movies from DataFrame into staging table.
+
+    :param movies_df: DataFrame with movie data
+    :type movies_df: pd.DataFrame
+    """
     session = SessionLocal()
     try:
-        movie_objs = []
         for _, row in movies_df.iterrows():
-            existing = session.query(MovieStaging).filter_by(id=row['id']).first()
-            if existing:
-                continue
+            obj = session.get(MovieStaging, row["id"])
 
-            movie_objs.append(MovieStaging(
-                id=row['id'],
-                budget=row['budget'],
-                genres=row['genres'],
-                homepage=row['homepage'],
-                keywords=row['keywords'],
-                original_language=row['original_language'],
-                original_title=row['original_title'],
-                overview=row['overview'],
-                popularity=row['popularity'],
-                production_companies=row['production_companies'],
-                production_countries=row['production_countries'],
-                release_date=row['release_date'],
-                revenue=row['revenue'],
-                runtime=row['runtime'],
-                spoken_languages=row['spoken_languages'],
-                status=row['status'],
-                tagline=row['tagline'],
-                title=row['title'],
-                vote_average=row['vote_average'],
-                vote_count=row['vote_count'],
-                cast=row['cast'],
-                crew=row['crew'],
-                director=row['director']
-            ))
-        session.add_all(movie_objs)
+            if obj is None:
+                obj = MovieStaging(id=row["id"])
+                session.add(obj)
+
+            for col in movies_df.columns:
+                if hasattr(obj, col):
+                    setattr(obj, col, row[col])
+
         session.commit()
-    except Exception as e:
+
+    except Exception:
         session.rollback()
-        raise e
+        raise
+
     finally:
         session.close()
 
-
 def clear_staging():
     """
-    Cleans staging table by converting None/NaN/NaT/non-string values into empty strings,
-    except release_date which is converted to proper date or None.
+    Cleans staging table by converting None/NaN/NaT/non-string
+    values into empty strings, except release_date
+    which is converted to proper date or None.
     """
     session = SessionLocal()
     try:
@@ -110,39 +99,50 @@ def clear_staging():
     finally:
         session.close()
 
-def load_movies():
-  """Load movies from staging table."""
+def load_movies() -> list[MovieStaging]:
+  """Load movies from staging table.
+  :return: list of MovieStaging objects"""
   with SessionLocal() as session:
         movies = session.query(MovieStaging).all()
         return movies
 
-def get_or_create_fields(items, model, session, lookup_keys=None):
+def get_or_create_fields(items, model, session, lookup_keys=None) -> list:
+    """
+    Get or create related field objects.
+
+    :param items: List of items to get or create
+    :param model: SQLAlchemy model class
+    :param session: SQLAlchemy session
+    :param lookup_keys: List of keys to use for lookup
+    :return: List of objects
+    """
     if not items:
         return []
 
     objects = []
 
     for item in items:
-        if isinstance(item, dict):
-            if not lookup_keys:
-                raise ValueError("lookup_keys must be provided for JSON dicts")
-            filter_dict = {key: item[key] for key in lookup_keys if key in item}
-        else:
-            filter_dict = {"name": item}
-
+        filter_dict = {k: item[k] for k in lookup_keys} if isinstance(item, dict) else {"name": item}
         obj = session.query(model).filter_by(**filter_dict).first()
 
         if obj is None:
             obj = model(**item) if isinstance(item, dict) else model(name=item)
             session.add(obj)
             session.flush()
-
-
         objects.append(obj)
 
     return objects
 
 def link_tables(movie_id, related_field, related_id, link_model, session):
+    """
+    Link a movie to a related field.
+
+    :param movie_id: ID of the movie
+    :param related_field: Name of the related field
+    :param related_id: ID of the related object
+    :param link_model: Link model class
+    :param session: SQLAlchemy session
+    """
     if related_id is None:
         return
 
@@ -152,5 +152,4 @@ def link_tables(movie_id, related_field, related_id, link_model, session):
     ).first()
 
     if not exists:
-        link_entry = link_model(movie_id=movie_id, **{related_field: related_id})
-        session.add(link_entry)
+        session.add(link_model(movie_id=movie_id, **{related_field: related_id}))

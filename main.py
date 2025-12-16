@@ -4,8 +4,7 @@ from crud import *
 from transforms import *
 init_db()
 
-from crud import load_movies_to_staging, read_movies_from_csv
-movies_df = read_movies_from_csv("movies.csv")
+movies_df = read_movies_from_csv("data/movies.csv")
 load_movies_to_staging(movies_df)
 
 clear_staging()

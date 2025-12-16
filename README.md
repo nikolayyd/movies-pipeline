@@ -25,7 +25,7 @@ String arrays and JSON-like columns are parsed and expanded into separate tables
 -> main.py               # Entry point for ETL process
 -> db.py                 # Database configuration and session
 -> models.py             # SQLAlchemy models
--> crud.py               # CRUD functions, including get_or_create_fields
+-> crud.py               # CRUD functions
 -> transforms.py         # Transformations and ETL logic
 -> requirements.txt      # Python dependencies
 -> data/                 # Folder with CSV files
@@ -57,7 +57,8 @@ String arrays and JSON-like columns are parsed and expanded into separate tables
 - **MovieSpokenLanguage**
 - **MovieCrew**
 
-These tables manage the relationships between movies and their associated attributes.
+These tables manage the relationships between
+movies and their associated attributes.
 
 ---
 
@@ -74,13 +75,15 @@ These tables manage the relationships between movies and their associated attrib
 - Normalize `None`, `NaN`, `NaT` values
 - Convert `release_date` to a proper date or `None`
 - Convert all other non-string or invalid values to empty strings
+- Ensure staging data is safe and consistent before transformation
 
 ---
 
 ### 3. Transform
 
 - Parse and transform columns into separate normalized tables
-- Convert cleaned string values to appropriate types (int, float, date) during model assignment
+- Convert cleaned string values to appropriate types
+    (int, float, date) during model assignment
 - Deduplicate records using `get_or_create_fields`
 - Maintain referential integrity between tables
 
@@ -102,3 +105,4 @@ The ETL pipeline is **idempotent**:
 - Many-to-many relationships are added only if missing
 
 This allows safe repeated execution without creating duplicate records.
+```

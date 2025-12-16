@@ -59,7 +59,7 @@ class Movie(Base):
 class Genre(Base):
     __tablename__ = 'genre'
     __table_args__ = {'schema': 'movies'}
-    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, index=True)
+    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     name = sqlalchemy.Column(sqlalchemy.String, unique=True, index=True)
     movies = sqlalchemy.orm.relationship("Movie", secondary="movies.movie_genre", back_populates="genres")
 
@@ -67,27 +67,27 @@ class Keyword(Base):
     __tablename__ = 'keyword'
     __table_args__ = {'schema': 'movies'}
     id = sqlalchemy.Column(sqlalchemy.BigInteger, primary_key=True)
-    name = sqlalchemy.Column(sqlalchemy.String)
+    name = sqlalchemy.Column(sqlalchemy.String, index=True)
     movies = sqlalchemy.orm.relationship("Movie", secondary="movies.movie_keyword", back_populates="keywords")
 
 class Cast(Base):
     __tablename__ = 'cast'
     __table_args__ = {'schema': 'movies'}
     id = sqlalchemy.Column(sqlalchemy.BigInteger, primary_key=True)
-    name = sqlalchemy.Column(sqlalchemy.String)
+    name = sqlalchemy.Column(sqlalchemy.String, index=True)
     movies = sqlalchemy.orm.relationship("Movie", secondary="movies.movie_cast", back_populates="cast")
 
 class ProductionCompany(Base):
     __tablename__ = 'production_company'
     __table_args__ = {'schema': 'movies'}
     id = sqlalchemy.Column(sqlalchemy.BigInteger, primary_key=True)
-    name = sqlalchemy.Column(sqlalchemy.String)
+    name = sqlalchemy.Column(sqlalchemy.String, index=True)
     movies = sqlalchemy.orm.relationship("Movie", secondary="movies.movie_production_company", back_populates="production_companies")
 
 class ProductionCountry(Base):
     __tablename__ = 'production_country'
     __table_args__ = {'schema': 'movies'}
-    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, index=True)
+    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     iso_3166_1 = sqlalchemy.Column(sqlalchemy.String, unique=True, index=True)
     name = sqlalchemy.Column(sqlalchemy.String)
     movies = sqlalchemy.orm.relationship("Movie", secondary="movies.movie_production_country", back_populates="production_countries")
@@ -95,7 +95,7 @@ class ProductionCountry(Base):
 class SpokenLanguage(Base):
     __tablename__ = 'spoken_language'
     __table_args__ = {'schema': 'movies'}
-    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, index=True)
+    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     iso_639_1 = sqlalchemy.Column(sqlalchemy.String, unique=True, index=True)
     name = sqlalchemy.Column(sqlalchemy.String)
     movies = sqlalchemy.orm.relationship("Movie", secondary="movies.movie_spoken_language", back_populates="spoken_languages")

@@ -2,6 +2,7 @@ import json
 import spacy
 from crud import *
 
+# Load the small English NLP model
 nlp = spacy.load("en_core_web_sm")
 
 
@@ -61,63 +62,74 @@ def transform_json(json_str: str):
     if not json_str or json_str.strip() == "":
         return []
     try:
-        fixed_str = json_str.replace("'", '"')  # единични -> двойни кавички
+        fixed_str = json_str.replace("'", '"')
         data = json.loads(fixed_str)
         return data if isinstance(data, list) else [data]
     except json.JSONDecodeError:
         return []
 
-
 def transform_movies(staging_movies):
+    """
+    Transform staging movies into final movie objects.
+    :param staging_movies: Base movies from staging table
+    """
     fields_config = [
         ("genres", Genre, MovieGenre, transform_genres, ["name"], "genre_id"),
         ("keywords", Keyword, MovieKeyword, transform_keywords, ["name"], "keyword_id"),
         ("cast", Cast, MovieCast, transform_cast, ["name"], "cast_id"),
-        ("crew", Crew, MovieCrew, transform_json, ["name"], "crew_id"),
-        ("production_companies", ProductionCompany, MovieProductionCompany, transform_json, ["name"], "company_id"),
-        ("production_countries", ProductionCountry, MovieProductionCountry, transform_json, ["name"], "country_id"),
-        ("spoken_languages", SpokenLanguage, MovieSpokenLanguage, transform_json, ["name"], "language_id"),
+        ("crew", Crew, MovieCrew, transform_json, ["id"], "crew_id"),
+        ("production_companies", ProductionCompany, MovieProductionCompany, transform_json, ["id"], "company_id"),
+        ("production_countries", ProductionCountry, MovieProductionCountry, transform_json, ["iso_3166_1"], "country_id"),
+        ("spoken_languages", SpokenLanguage, MovieSpokenLanguage, transform_json, ["iso_639_1"], "language_id"),
     ]
 
     with SessionLocal() as session:
-        for counter, sm in enumerate(staging_movies, start=1):
-            # If exactly the same movie already exists, skip it
-            if counter % 100 == 0:
-                print(f"Transformed {counter} movies...")
-            m = Movie(
-                id=sm.id,
-                title=sm.title,
-                budget=int(sm.budget) if sm.budget else None,
-                homepage=sm.homepage,
-                original_language=sm.original_language,
-                original_title=sm.original_title,
-                overview=sm.overview,
-                popularity=float(sm.popularity) if sm.popularity else None,
-                release_date=sm.release_date,
-                revenue=int(sm.revenue) if sm.revenue else None,
-                runtime=float(sm.runtime) if sm.runtime else None,
-                status=sm.status,
-                tagline=sm.tagline,
-                vote_average=float(sm.vote_average) if sm.vote_average else None,
-                vote_count=int(sm.vote_count) if sm.vote_count else None,
-                director=sm.director
-            )
-            session.add(m)
-            session.flush()
+        with session.no_autoflush:
+            for counter, sm in enumerate(staging_movies, start=1):
+                if counter % 100 == 0:
+                    print(f"Transformed {counter} movies...")
 
-            for attr, model, link_table, transformer, lookup_keys, fk_name in fields_config:
-                items = getattr(sm, attr)
-                if not items:
-                    continue
+                m = session.get(Movie, sm.id)
+                if m is None:
+                    m = Movie(id=sm.id)
+                    session.add(m)
 
-                transformed_items = transformer(items)
-                objs = get_or_create_fields(transformed_items, model, session=session, lookup_keys=lookup_keys)
+                m.title = sm.title
+                m.budget = int(sm.budget) if sm.budget else None
+                m.homepage = sm.homepage
+                m.original_language = sm.original_language
+                m.original_title = sm.original_title
+                m.overview = sm.overview
+                m.popularity = float(sm.popularity) if sm.popularity else None
+                m.release_date = sm.release_date
+                m.revenue = int(sm.revenue) if sm.revenue else None
+                m.runtime = float(sm.runtime) if sm.runtime else None
+                m.status = sm.status
+                m.tagline = sm.tagline
+                m.vote_average = float(sm.vote_average) if sm.vote_average else None
+                m.vote_count = int(sm.vote_count) if sm.vote_count else None
+                m.director = sm.director
 
-                seen = set()
-                for obj in objs:
-                    if obj.id not in seen:
-                        link_tables(m.id, fk_name, obj.id, link_table, session)
-                        seen.add(obj.id)
+                session.flush()
 
-        session.commit()
-        print("Transformed and loaded movies successfully.")
+                for attr, model, link_table, transformer, lookup_keys, fk_name in fields_config:
+                    items = getattr(sm, attr)
+                    if not items:
+                        continue
+
+                    transformed_items = transformer(items)
+                    objs = get_or_create_fields(
+                        transformed_items,
+                        model,
+                        session=session,
+                        lookup_keys=lookup_keys
+                    )
+
+                    seen = set()
+                    for obj in objs:
+                        if obj.id not in seen:
+                            link_tables(m.id, fk_name, obj.id, link_table, session)
+                            seen.add(obj.id)
+
+            session.commit()
+            print("Transformed and loaded movies successfully.")
