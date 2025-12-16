@@ -1,31 +1,52 @@
 # Movies ETL Pipeline
 
-## Описание
+## Overview
 
-Този проект реализира **ETL (Extract, Transform, Load) pipeline** за обработка на Movies dataset. Данните се извличат от CSV файл, почистват се и се трансформират в **нормализирана PostgreSQL схема** чрез SQLAlchemy ORM.
+This project implements an **ETL (Extract, Transform, Load) pipeline** for processing a Movies dataset. The pipeline reads data from a CSV file, cleans and transforms it, and loads it into a **normalized PostgreSQL schema** using SQLAlchemy ORM.
 
-Проектът използва **staging таблица** и множество **many-to-many релации**, характерни за реални data engineering решения.
+The project uses a **staging table** for initial loading and multiple **many-to-many relationships**, typical for real-world data engineering workflows.
 
 ---
 
-## Технологии
+## Technologies
 
 - Python 3.x
 - Pandas
-- SQLAlchemy
+- SQLAlchemy ORM
 - PostgreSQL
 
 ---
 
-## Архитектура и Модели
+## Project Structure
 
-### Основни таблици
+```text
+.
+├── main.py               # Entry point for ETL process
+├── db.py                 # Database configuration and session
+├── models.py             # SQLAlchemy models
+├── crud.py               # CRUD functions, including get_or_create_fields
+├── transforms.py         # Transformations and ETL logic
+├── requirements.txt      # Python dependencies
+├── data/                 # Folder with CSV files
+└── README.md             # This file
 
-- **MovieStaging** – staging таблица за първоначално зареждане на CSV данните
-- **Movie** – основна таблица за филмите
-- **Genre, Keyword, Cast, ProductionCompany, ProductionCountry, SpokenLanguage, Crew** – нормализирани справочни таблици
+## Database Models
 
-### Асоциативни таблици (Many-to-Many)
+### Main Tables
+
+- **MovieStaging** – staging table for initial CSV load
+- **Movie** – main movies table
+- **Genre** – normalized genre reference table
+- **Keyword** – normalized keyword reference table
+- **Cast** – normalized cast/actor reference table
+- **ProductionCompany** – normalized production companies
+- **ProductionCountry** – normalized production countries
+- **SpokenLanguage** – normalized spoken languages
+- **Crew** – normalized crew members
+
+---
+
+### Many-to-Many Tables
 
 - **MovieGenre**
 - **MovieKeyword**
@@ -35,44 +56,47 @@
 - **MovieSpokenLanguage**
 - **MovieCrew**
 
-Тези таблици управляват връзките между филмите и свързаните с тях атрибути.
+These tables manage the relationships between movies and their associated attributes.
 
 ---
 
-## ETL Процес
+## ETL Process
 
 ### 1. Extract
-- CSV файл → Pandas DataFrame → MovieStaging
+
+- CSV file → Pandas DataFrame → **MovieStaging** table
+
+---
 
 ### 2. Clean
-- Премахване и нормализиране на `None`, `NaN`, `NaT`
-- Подготовка на данните за безопасна трансформация
+
+- Normalize `None`, `NaN`, `NaT` values
+- Convert `release_date` to a proper date or `None`
+- Convert all other non-string or invalid values to empty strings
+
+---
 
 ### 3. Transform
-- Нормализация на колоните в отделни таблици
-- Deduplication чрез `get_or_create` логика
-- Поддържане на referential integrity между таблиците
+
+- Parse and transform columns into separate normalized tables
+- Deduplicate records using `get_or_create_fields`
+- Maintain referential integrity between tables
+
+---
 
 ### 4. Load
-- Зареждане на трансформираните данни в основните таблици
-- Попълване на асоциативните таблици
+
+- Load transformed data into main tables
+- Populate many-to-many association tables
 
 ---
 
 ## Idempotency
 
-ETL pipeline-ът е **idempotent** – многократно изпълнение не създава дублиращи записи.
+The ETL pipeline is **idempotent**:
 
-- Таблиците се създават само ако не съществуват
-- Справочните записи се проверяват за съществуване преди insert
-- Many-to-many връзките се добавят само ако липсват
+- Tables are created only if they do not exist
+- Reference records are checked before insertion
+- Many-to-many relationships are added only if missing
 
----
-
-## Стартиране
-
-Инсталиране на зависимостите и пускане на програмата:
-
-```bash
-pip install -r requirements.txt
-python main.py
+This allows safe repeated execution without creating duplicate records.
